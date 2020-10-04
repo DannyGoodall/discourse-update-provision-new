@@ -1,0 +1,133 @@
+<script type="text/discourse-plugin" version="0.4">
+const sp_settings = Discourse.SiteSettings;
+const default_provision = sp_settings.school_points_default_provision;
+const ial = sp_settings.school_points_icons_and_links;
+const provisionList = sp_settings.school_points_provisions;
+
+function getSessionCurrent(cb) {
+    const currentUser = api.getCurrentUser();
+    /* https://meta.discourse.org/t/gosquared-people-integration-how-to-get-user-name-and-email-in-javascript-at-head-customization/44917/6 */ 
+    $.ajax(
+        {
+            type:   'GET',
+            cache:  false,
+            url:    '/session/current.json',
+            dataType:   'json',
+            xhrFields:  {
+                'withCredentials':  true
+            },
+            success:    cb
+        }
+    )
+}
+
+function assign(arr, vars) {
+    var x = {};
+    var num = Math.min(arr.length, vars.length);
+    for (var i = 0; i < num; ++i) {
+        x[vars[i]] = arr[i];
+    }
+    return x;
+}
+
+function getIconsAndLinks(provision){
+    /* jarjums:all:500:GG ABCCs:question:/c/jj-abccs/l/agenda:vdo:self */
+    var i = new Array();
+    
+    $.each( ial.split("|"), function( index, value ) {
+        elems = value.split(":");
+        x = assign(elems, ['provision','category','order','shortname','title','icon','link','cls','target'])
+        if (x.provision === provision) {
+            i.push(x);
+        }
+    });
+    i = i.sort( function(a, b)
+    {
+        return a.order - b.order
+    });
+    return i;
+}
+
+function getProvisionInitials(provision){
+    /* rainbow:all:100:RR,Rainbow Room Resource Provision  */
+    var i = new Array();
+    var provisionInitials = null;
+    
+    $.each( provisionList.split("|"), function( index, value ) {
+        if (provisionInitials === null) {
+            elems = value.split(":");
+            x = assign(elems, ['provision','category','order','initialsAndDescription']);
+            elems = x.initialsAndDescription.split(",")
+            y = assign(elems, ['initials', 'description']);
+    
+            if (x.provision.toLowerCase() === provision.toLowerCase()) {
+                provisionInitials = y.initials;
+            }
+        }
+    })
+    if (provisionInitials === null) {
+        return "??";
+    } else {
+        return provisionInitials;
+    }
+}
+
+$( document ).ready( 
+    function() {
+        function insertProvisionName(data, testStatus, xhr) {
+            /*console.log("Checking provision name...")*/
+            var  provisionNameText = data.current_user.custom_fields.user_field_2;
+            var  provisionInitials = getProvisionInitials(provisionNameText.toLowerCase());
+            
+            /*console.log(provisionInitials);*/
+            
+            /*console.log("->Got the following value from user", provisionNameText);*/
+            
+            var iconsAndLinks = getIconsAndLinks(provisionNameText.toLowerCase());
+            /*console.log("->Icons and Links", iconsAndLinks);*/
+            
+            /* Get the current value and only update if it's changed */
+            var currentProvisionName = $("span.provision-name").text();
+            var currentProvisionInitials = $("span.provision-name").text();
+            if ( provisionInitials !== currentProvisionInitials ) {
+            /* if ( provisionNameText !== currentProvisionName ) { */
+                /*console.log("->Provision name HAS changed. Updating header...")*/
+                /* We need to change the values of the name and the links */
+                
+                /* $("span.provision-name").text(provisionNameText); */
+                $("span.provision-name").text(provisionInitials);
+                
+                /* Loop through the icons we have */
+                $.each(iconsAndLinks, function( index, value ){
+                    
+                    $("a.provision-link-to-"+value.shortname).attr("href", value.link).attr("title", value.title);
+                    
+                    $("")
+                });
+            } else {
+                /*console.log("->Provision name HAS NOT changed.")*/
+            }
+            
+        };
+        
+        /*
+        $('span.provision-name').click( 
+            function() {
+                const user = api.getCurrentUser();
+                var redirect_to = '/u/' + user.username + '/preferences/profile';
+                document.location.href = redirect_to;
+            }
+        )
+        */ 
+        
+        window.setInterval(function(){
+            /// call your function here
+            
+            getSessionCurrent(insertProvisionName);
+        }, 10000);
+    }
+);
+</script>
+
+
+
