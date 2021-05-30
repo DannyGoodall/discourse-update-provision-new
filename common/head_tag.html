@@ -52,6 +52,9 @@ function getProvisionInitials(provision){
     /* rainbow:all:100:RR,Rainbow Room Resource Provision  */
     var i = new Array();
     var provisionInitials = null;
+    var elems = new Array();
+    var x = new Object();
+    var y = new Object();
     
     $.each( provisionList.split("|"), function( index, value ) {
         if (provisionInitials === null) {
